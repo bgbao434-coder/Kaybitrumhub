@@ -1,109 +1,51 @@
--- KayBiTrum Hub VIP (Blox Fruits Full Auto)
+-- KayBiTrum Hub Mini (Blox Fruits)
 
-repeat wait() until game:IsLoaded()
+repeat task.wait() until game:IsLoaded()
 
 local player = game.Players.LocalPlayer
-local UIS = game:GetService("UserInputService")
+local rs = game:GetService("ReplicatedStorage")
 
 getgenv().KBT = {
     Farm = false,
-    Skill = false,
     Fast = false,
-    Click = false,
-    Quest = false
+    Skill = false,
+    Click = false
 }
 
 -- GUI
 local gui = Instance.new("ScreenGui", game.CoreGui)
 local main = Instance.new("Frame", gui)
-local top = Instance.new("TextLabel", main)
-
-main.Size = UDim2.new(0,260,0,200)
+main.Size = UDim2.new(0,250,0,200)
 main.Position = UDim2.new(0.3,0,0.3,0)
-main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+main.BackgroundColor3 = Color3.fromRGB(25,25,25)
 
-top.Size = UDim2.new(1,0,0,30)
-top.Text = "KayBiTrum Hub"
-top.TextColor3 = Color3.new(1,1,1)
-top.BackgroundColor3 = Color3.fromRGB(30,30,30)
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,30)
+title.Text = "KayBiTrum Hub"
+title.BackgroundColor3 = Color3.fromRGB(35,35,35)
+title.TextColor3 = Color3.new(1,1,1)
 
--- Drag
-local dragging, dragStart, startPos
-top.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = main.Position
-    end
-end)
+-- Toggle function
+function Toggle(name, y, key)
+    local b = Instance.new("TextButton", main)
+    b.Size = UDim2.new(1,0,0,30)
+    b.Position = UDim2.new(0,0,0,y)
+    b.Text = name.." : OFF"
+    b.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    b.TextColor3 = Color3.new(1,1,1)
 
-top.InputChanged:Connect(function(input)
-    if dragging then
-        local delta = input.Position - dragStart
-        main.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
--- Tabs
-local tabs = {"Farm","Combat"}
-local pages = {}
-
-for i,v in pairs(tabs) do
-    local btn = Instance.new("TextButton", main)
-    btn.Size = UDim2.new(0.5,0,0,30)
-    btn.Position = UDim2.new((i-1)*0.5,0,0,30)
-    btn.Text = v
-    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    btn.TextColor3 = Color3.new(1,1,1)
-
-    local page = Instance.new("Frame", main)
-    page.Size = UDim2.new(1,0,1,-60)
-    page.Position = UDim2.new(0,0,0,60)
-    page.Visible = false
-    page.BackgroundTransparency = 1
-    pages[v] = page
-
-    btn.MouseButton1Click:Connect(function()
-        for _,p in pairs(pages) do p.Visible = false end
-        page.Visible = true
-    end)
-end
-
-pages["Farm"].Visible = true
-
--- Toggle
-function Toggle(parent, text, posY, key)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1,0,0,35)
-    btn.Position = UDim2.new(0,0,0,posY)
-    btn.Text = text.." : OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    btn.TextColor3 = Color3.new(1,1,1)
-
-    btn.MouseButton1Click:Connect(function()
+    b.MouseButton1Click:Connect(function()
         getgenv().KBT[key] = not getgenv().KBT[key]
-        btn.Text = text.." : "..(getgenv().KBT[key] and "ON" or "OFF")
+        b.Text = name.." : "..(getgenv().KBT[key] and "ON" or "OFF")
     end)
 end
 
-Toggle(pages["Farm"],"Auto Farm",0,"Farm")
-Toggle(pages["Farm"],"Auto Quest",40,"Quest")
-Toggle(pages["Combat"],"Fast Attack",0,"Fast")
-Toggle(pages["Combat"],"Auto Skill",40,"Skill")
-Toggle(pages["Combat"],"Auto Click",80,"Click")
+Toggle("Auto Farm",40,"Farm")
+Toggle("Fast Attack",70,"Fast")
+Toggle("Auto Skill",100,"Skill")
+Toggle("Auto Click",130,"Click")
 
--- QUEST DATA
+-- QUEST LIST (MAP 1)
 local QuestList = {
     {Level = 1, Name = "Bandit", QuestName = "BanditQuest1", QuestLv = 1},
     {Level = 10, Name = "Monkey", QuestName = "JungleQuest", QuestLv = 1},
@@ -121,66 +63,46 @@ function GetQuest()
     end
 end
 
-function GetMob()
-    local quest = GetQuest()
-    if not quest then return end
-
-    for _,v in pairs(game.Workspace.Enemies:GetChildren()) do
-        if v:FindFirstChild("Humanoid") 
-        and v.Humanoid.Health > 0 
-        and string.find(v.Name, quest.Name) then
-            return v
-        end
-    end
-end
-
--- Auto Quest
+-- MAIN AUTO FARM (gộp quest + farm)
 spawn(function()
-    while wait(1) do
-        if getgenv().KBT.Quest then
+    while task.wait() do
+        if getgenv().KBT.Farm then
             pcall(function()
+
+                if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+
                 local quest = GetQuest()
-                if quest then
-                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(
-                        "StartQuest",
-                        quest.QuestName,
-                        quest.QuestLv
-                    )
-                end
-            end)
-        end
-    end
-end)
+                if not quest then return end
 
--- Auto Farm (bay trên đầu)
-spawn(function()
-    while wait() do
-        if getgenv().KBT.Farm then
-            pcall(function()
-                local mob = GetMob()
+                -- Nhận quest
+                if not player.PlayerGui:FindFirstChild("Quest") then
+                    rs.Remotes.CommF_:InvokeServer("StartQuest", quest.QuestName, quest.QuestLv)
+                    task.wait(1)
+                end
+
+                -- Tìm mob
+                local mob
+                local enemies = workspace:FindFirstChild("Enemies")
+                if enemies then
+                    for _,v in pairs(enemies:GetChildren()) do
+                        if v:FindFirstChild("Humanoid")
+                        and v.Humanoid.Health > 0
+                        and string.find(v.Name, quest.Name) then
+                            mob = v
+                            break
+                        end
+                    end
+                end
+
+                -- Bay trên đầu + đánh
                 if mob and mob:FindFirstChild("HumanoidRootPart") then
-                    repeat task.wait()
-                        player.Character.HumanoidRootPart.CFrame =
-                            CFrame.new(
-                                mob.HumanoidRootPart.Position + Vector3.new(0,10,0),
-                                mob.HumanoidRootPart.Position
-                            )
-                    until not mob or mob.Humanoid.Health <= 0
+                    player.Character.HumanoidRootPart.CFrame =
+                        CFrame.new(
+                            mob.HumanoidRootPart.Position + Vector3.new(0,10,0),
+                            mob.HumanoidRootPart.Position
+                        )
                 end
-            end)
-        end
-    end
-end)
 
--- Anti Fall
-spawn(function()
-    while wait() do
-        if getgenv().KBT.Farm then
-            pcall(function()
-                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    hrp.Velocity = Vector3.new(0,0,0)
-                end
             end)
         end
     end
@@ -188,10 +110,10 @@ end)
 
 -- Fast Attack
 spawn(function()
-    while wait(0.1) do
+    while task.wait(0.1) do
         if getgenv().KBT.Fast then
             pcall(function()
-                game:GetService("ReplicatedStorage").Remotes.Combat:FireServer("Attack")
+                rs.Remotes.Combat:FireServer("Attack")
             end)
         end
     end
@@ -199,13 +121,13 @@ end)
 
 -- No Animation
 spawn(function()
-    while wait() do
+    while task.wait() do
         if getgenv().KBT.Fast then
             pcall(function()
                 local hum = player.Character:FindFirstChildOfClass("Humanoid")
                 if hum then
-                    for _,track in pairs(hum:GetPlayingAnimationTracks()) do
-                        track:Stop()
+                    for _,v in pairs(hum:GetPlayingAnimationTracks()) do
+                        v:Stop()
                     end
                 end
             end)
@@ -213,15 +135,17 @@ spawn(function()
     end
 end)
 
--- Auto Click
+-- Hitbox
 spawn(function()
-    while wait() do
-        if getgenv().KBT.Click then
+    while task.wait() do
+        if getgenv().KBT.Fast then
             pcall(function()
-                local vim = game:GetService("VirtualInputManager")
-                vim:SendMouseButtonEvent(0,0,0,true,game,0)
-                wait(0.1)
-                vim:SendMouseButtonEvent(0,0,0,false,game,0)
+                for _,v in pairs(workspace.Enemies:GetChildren()) do
+                    if v:FindFirstChild("HumanoidRootPart") then
+                        v.HumanoidRootPart.Size = Vector3.new(12,12,12)
+                        v.HumanoidRootPart.CanCollide = false
+                    end
+                end
             end)
         end
     end
@@ -229,16 +153,49 @@ end)
 
 -- Auto Skill
 spawn(function()
-    while wait() do
+    while task.wait() do
         if getgenv().KBT.Skill then
+            local vim = game:GetService("VirtualInputManager")
+            for _,k in pairs({"Z","X","C","V"}) do
+                vim:SendKeyEvent(true,k,false,game)
+                task.wait(0.5)
+            end
+        end
+    end
+end)
+
+-- Auto Click
+spawn(function()
+    while task.wait() do
+        if getgenv().KBT.Click then
+            local vim = game:GetService("VirtualInputManager")
+            vim:SendMouseButtonEvent(0,0,0,true,game,0)
+            task.wait(0.1)
+            vim:SendMouseButtonEvent(0,0,0,false,game,0)
+        end
+    end
+end)
+
+-- Auto Haki
+spawn(function()
+    while task.wait(1) do
+        if getgenv().KBT.Farm then
             pcall(function()
-                local vim = game:GetService("VirtualInputManager")
-                for _,k in pairs({"Z","X","C","V"}) do
-                    vim:SendKeyEvent(true,k,false,game)
-                    wait(0.5)
-                end
+                rs.Remotes.CommF_:InvokeServer("Buso")
             end)
         end
+    end
+end)
+
+-- Speed
+spawn(function()
+    while task.wait() do
+        pcall(function()
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = 80
+            end
+        end)
     end
 end)
 
