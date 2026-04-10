@@ -1,53 +1,22 @@
--- KAYBITRUM FULL FARM GUI (FIX ALL)
-
 repeat task.wait() until game:IsLoaded()
 
 local player = game.Players.LocalPlayer
-local rs = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local VirtualUser = game:GetService("VirtualUser")
 
-getgenv().Farm = false
-
--- GUI XANH ĐEN
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0,200,0,120)
-Frame.Position = UDim2.new(0,20,0.5,-60)
-Frame.BackgroundColor3 = Color3.fromRGB(15,15,25)
-Frame.BorderSizePixel = 0
-
-local UICorner = Instance.new("UICorner", Frame)
-
-local Title = Instance.new("TextLabel", Frame)
-Title.Size = UDim2.new(1,0,0,30)
-Title.Text = "KAYBITRUM FARM"
-Title.TextColor3 = Color3.fromRGB(0,255,150)
-Title.BackgroundTransparency = 1
-
-local Button = Instance.new("TextButton", Frame)
-Button.Size = UDim2.new(1,-20,0,40)
-Button.Position = UDim2.new(0,10,0,50)
-Button.Text = "OFF"
-Button.BackgroundColor3 = Color3.fromRGB(0,100,80)
-Button.TextColor3 = Color3.new(1,1,1)
-
-Instance.new("UICorner", Button)
-
-Button.MouseButton1Click:Connect(function()
-    getgenv().Farm = not getgenv().Farm
-    Button.Text = getgenv().Farm and "ON" or "OFF"
-end)
+getgenv().Farm = true
 
 -- TWEEN
 function TweenTo(pos)
     local char = player.Character
     if not char then return end
+    
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-
-    local dist = (hrp.Position - pos).Magnitude
-    local tween = TweenService:Create(hrp,
-        TweenInfo.new(dist/250, Enum.EasingStyle.Linear),
+    
+    local tween = TweenService:Create(
+        hrp,
+        TweenInfo.new((hrp.Position - pos).Magnitude / 200, Enum.EasingStyle.Linear),
         {CFrame = CFrame.new(pos)}
     )
     tween:Play()
@@ -55,89 +24,122 @@ end
 
 -- AUTO FARM
 spawn(function()
-    while task.wait(0.15) do
+    while task.wait(0.2) do
         if getgenv().Farm then
             pcall(function()
-
                 local char = player.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if not hrp or not hum then return end
+                if not char then return end
+                
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
 
-                -- equip
-                local tool = char:FindFirstChildOfClass("Tool")
-                if not tool then
-                    for _,v in pairs(player.Backpack:GetChildren()) do
-                        if v:IsA("Tool") then
-                            hum:EquipTool(v)
-                            return
-                        end
-                    end
+                local mob = workspace.Enemies:FindFirstChild("Bandit")
+                if mob and mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") then
+                    
+                    -- BAY CAO 40
+                    local pos = mob.HumanoidRootPart.Position + Vector3.new(0, 40, 0)
+                    TweenTo(pos)
+
+                    -- BRING MOB
+                    mob.HumanoidRootPart.CanCollide = false
+                    mob.HumanoidRootPart.Size = Vector3.new(50,50,50)
+
+                    -- AUTO ĐÁNH
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new(0,0))
+
+                    -- AUTO SKILL
+                    game:GetService("VirtualInputManager"):SendKeyEvent(true, "Z", false, game)
+                    game:GetService("VirtualInputManager"):SendKeyEvent(true, "X", false, game)
+                    game:GetService("VirtualInputManager"):SendKeyEvent(true, "C", false, game)
                 end
-
-                -- tìm mob gần
-                local target,dist=nil,math.huge
-                for _,v in pairs(workspace.Enemies:GetChildren()) do
-                    if v:FindFirstChild("Humanoid") 
-                    and v:FindFirstChild("HumanoidRootPart")
-                    and v.Humanoid.Health > 0 then
-
-                        local m=(hrp.Position-v.HumanoidRootPart.Position).Magnitude
-                        if m<dist then
-                            dist=m
-                            target=v
-                        end
-                    end
-                end
-
-                if target then
-                    local mobhrp = target.HumanoidRootPart
-
-                    -- 🔥 BAY CAO HƠN (FIX CHÍNH)
-                    local offset = CFrame.new(0,10,0)
-
-                    -- tween nếu xa
-                    if dist > 12 then
-                        TweenTo((mobhrp.CFrame * offset).Position)
-                    else
-                        -- bám đầu
-                        hrp.CFrame = mobhrp.CFrame * offset
-                        hrp.Velocity = Vector3.new(0,0,0)
-
-                        -- fix mob
-                        mobhrp.CanCollide = false
-
-                        -- spam đánh mạnh hơn
-                        if tool then
-                            tool:Activate()
-                            tool:Activate()
-                        end
-                    end
-                end
-
             end)
         end
     end
 end)
 
--- AUTO HAKI
+-- AUTO QUEST (Bandit)
 spawn(function()
-    while task.wait(5) do
+    while task.wait(1) do
         if getgenv().Farm then
             pcall(function()
-                if player.Character and not player.Character:FindFirstChild("HasBuso") then
-                    rs.Remotes.CommF_:InvokeServer("Buso")
+                local quest = workspace:FindFirstChild("Quest")
+                if quest then
+                    -- tuỳ map nên bạn chỉnh lại nếu cần
                 end
             end)
         end
     end
 end)
 
--- ANTI AFK
-spawn(function()
-    local vu = game:GetService("VirtualUser")
-    player.Idled:Connect(function()
-        vu:CaptureController()
-        vu:ClickButton2(Vector2.new())
-    end)
+--------------------------------------------------
+-- MENU XANH ĐEN
+--------------------------------------------------
+
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0,200,0,120)
+Frame.Position = UDim2.new(0,20,0.4,0)
+Frame.BackgroundColor3 = Color3.fromRGB(10,10,20)
+
+local UICorner = Instance.new("UICorner", Frame)
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1,0,0,30)
+Title.Text = "KAY FARM"
+Title.TextColor3 = Color3.fromRGB(0,255,150)
+Title.BackgroundTransparency = 1
+
+local Button = Instance.new("TextButton", Frame)
+Button.Size = UDim2.new(0.8,0,0,40)
+Button.Position = UDim2.new(0.1,0,0.4,0)
+Button.Text = "Farm: ON"
+Button.BackgroundColor3 = Color3.fromRGB(0,100,100)
+Button.TextColor3 = Color3.new(1,1,1)
+
+Button.MouseButton1Click:Connect(function()
+    getgenv().Farm = not getgenv().Farm
+    
+    if getgenv().Farm then
+        Button.Text = "Farm: ON"
+    else
+        Button.Text = "Farm: OFF"
+    end
+end)
+
+-- DRAG MENU
+local UIS = game:GetService("UserInputService")
+local dragging, dragInput, dragStart, startPos
+
+Frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Frame.Position
+    end
+end)
+
+Frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        Frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
 end)
