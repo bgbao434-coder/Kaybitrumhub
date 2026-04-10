@@ -8,7 +8,9 @@ local UIS = game:GetService("UserInputService")
 getgenv().KBT = {
     Farm = false,
     Skill = false,
-    Fast = false
+    Fast = false,
+    Click = false,
+    Quest = false
 }
 
 -- GUI
@@ -21,28 +23,54 @@ main.Position = UDim2.new(0.3,0,0.3,0)
 main.BackgroundColor3 = Color3.fromRGB(20,20,20)
 
 top.Size = UDim2.new(1,0,0,30)
-top.Text = "KayBiTrum Hub"
+top.Text = "   KayBiTrum Hub"
 top.TextColor3 = Color3.new(1,1,1)
 top.BackgroundColor3 = Color3.fromRGB(30,30,30)
 
--- Drag GUI
-local dragging, dragInput, startPos, startInput
+-- 🖼️ ICON
+local icon = Instance.new("ImageLabel", top)
+icon.Size = UDim2.new(0,25,0,25)
+icon.Position = UDim2.new(0,2,0,2)
+icon.BackgroundTransparency = 1
+icon.Image = "rbxassetid://7733960981" -- bạn có thể đổi ID khác
+
+-- ❌ Close button
+local close = Instance.new("TextButton", top)
+close.Size = UDim2.new(0,30,1,0)
+close.Position = UDim2.new(1,-30,0,0)
+close.Text = "X"
+close.BackgroundColor3 = Color3.fromRGB(150,0,0)
+close.TextColor3 = Color3.new(1,1,1)
+
+close.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+-- 🔥 Drag (mobile + PC)
+local dragging = false
+local dragStart
+local startPos
 
 top.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.Touch 
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
-        startInput = input.Position
+        dragStart = input.Position
         startPos = main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
     end
 end)
 
 top.InputChanged:Connect(function(input)
-    dragInput = input
-end)
+    if input.UserInputType == Enum.UserInputType.Touch 
+    or input.UserInputType == Enum.UserInputType.MouseMovement then
 
-UIS.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - startInput
+        local delta = input.Position - dragStart
         main.Position = UDim2.new(
             startPos.X.Scale,
             startPos.X.Offset + delta.X,
@@ -52,15 +80,8 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
 -- Tabs
 local tabs = {"Farm","Combat","Misc"}
-local buttons = {}
 local pages = {}
 
 for i,v in pairs(tabs) do
@@ -70,7 +91,6 @@ for i,v in pairs(tabs) do
     btn.Text = v
     btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
     btn.TextColor3 = Color3.new(1,1,1)
-    buttons[v] = btn
 
     local page = Instance.new("Frame", main)
     page.Size = UDim2.new(1,0,1,-60)
@@ -87,7 +107,7 @@ end
 
 pages["Farm"].Visible = true
 
--- Create Toggle
+-- Toggle
 function Toggle(parent, text, posY, key)
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(1,0,0,35)
@@ -104,8 +124,10 @@ end
 
 -- Toggles
 Toggle(pages["Farm"],"Auto Farm",0,"Farm")
+Toggle(pages["Farm"],"Auto Quest",40,"Quest")
 Toggle(pages["Combat"],"Auto Skill",0,"Skill")
 Toggle(pages["Combat"],"Fast Attack",40,"Fast")
+Toggle(pages["Combat"],"Auto Click",80,"Click")
 
 -- Anti AFK
 spawn(function()
@@ -174,9 +196,38 @@ spawn(function()
     end
 end)
 
+-- Auto Click
+spawn(function()
+    while wait() do
+        if getgenv().KBT.Click then
+            pcall(function()
+                local vim = game:GetService("VirtualInputManager")
+                vim:SendMouseButtonEvent(0,0,0,true,game,0)
+                wait(0.1)
+                vim:SendMouseButtonEvent(0,0,0,false,game,0)
+            end)
+        end
+    end
+end)
+
+-- Auto Quest
+spawn(function()
+    while wait(2) do
+        if getgenv().KBT.Quest then
+            pcall(function()
+                local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+                if remote and remote:FindFirstChild("Quest") then
+                    remote.Quest:FireServer("Start")
+                end
+            end)
+        end
+    end
+end)
+
 -- Notify
 game.StarterGui:SetCore("SendNotification",{
     Title = "KayBiTrum Hub",
     Text = "VIP Loaded 🚀",
     Duration = 5
+
 })
