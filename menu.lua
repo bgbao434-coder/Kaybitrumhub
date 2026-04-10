@@ -1,4 +1,4 @@
--- KayBiTrum Hub Mini (Blox Fruits)
+-- KayBiTrum Hub FINAL (No Skill)
 
 repeat task.wait() until game:IsLoaded()
 
@@ -7,26 +7,26 @@ local rs = game:GetService("ReplicatedStorage")
 
 getgenv().KBT = {
     Farm = false,
-    Fast = false,
-    Skill = false,
-    Click = false
+    Fast = false
 }
 
 -- GUI
 local gui = Instance.new("ScreenGui", game.CoreGui)
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0,250,0,200)
+main.Size = UDim2.new(0,250,0,150)
 main.Position = UDim2.new(0.3,0,0.3,0)
 main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+main.Active = true
+main.Draggable = true
 
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1,0,0,30)
-title.Text = "KayBiTrum Hub"
+title.Text = "KayBiTrum Hub FINAL"
 title.BackgroundColor3 = Color3.fromRGB(35,35,35)
 title.TextColor3 = Color3.new(1,1,1)
 
--- Toggle function
-function Toggle(name, y, key)
+-- Toggle
+function Toggle(name,y,key)
     local b = Instance.new("TextButton", main)
     b.Size = UDim2.new(1,0,0,30)
     b.Position = UDim2.new(0,0,0,y)
@@ -41,11 +41,9 @@ function Toggle(name, y, key)
 end
 
 Toggle("Auto Farm",40,"Farm")
-Toggle("Fast Attack",70,"Fast")
-Toggle("Auto Skill",100,"Skill")
-Toggle("Auto Click",130,"Click")
+Toggle("Fast Attack",80,"Fast")
 
--- QUEST LIST (MAP 1)
+-- Quest list
 local QuestList = {
     {Level = 1, Name = "Bandit", QuestName = "BanditQuest1", QuestLv = 1},
     {Level = 10, Name = "Monkey", QuestName = "JungleQuest", QuestLv = 1},
@@ -63,44 +61,39 @@ function GetQuest()
     end
 end
 
--- MAIN AUTO FARM (gộp quest + farm)
+-- Auto Farm
 spawn(function()
     while task.wait() do
         if getgenv().KBT.Farm then
             pcall(function()
 
-                if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+                local char = player.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 
                 local quest = GetQuest()
                 if not quest then return end
 
-                -- Nhận quest
+                -- nhận quest
                 if not player.PlayerGui:FindFirstChild("Quest") then
                     rs.Remotes.CommF_:InvokeServer("StartQuest", quest.QuestName, quest.QuestLv)
                     task.wait(1)
                 end
 
-                -- Tìm mob
+                -- tìm mob
                 local mob
-                local enemies = workspace:FindFirstChild("Enemies")
-                if enemies then
-                    for _,v in pairs(enemies:GetChildren()) do
-                        if v:FindFirstChild("Humanoid")
-                        and v.Humanoid.Health > 0
-                        and string.find(v.Name, quest.Name) then
-                            mob = v
-                            break
-                        end
+                for _,v in pairs(workspace.Enemies:GetChildren()) do
+                    if v.Name:find(quest.Name)
+                    and v:FindFirstChild("Humanoid")
+                    and v.Humanoid.Health > 0 then
+                        mob = v
+                        break
                     end
                 end
 
-                -- Bay trên đầu + đánh
+                -- đứng gần mob
                 if mob and mob:FindFirstChild("HumanoidRootPart") then
-                    player.Character.HumanoidRootPart.CFrame =
-                        CFrame.new(
-                            mob.HumanoidRootPart.Position + Vector3.new(0,10,0),
-                            mob.HumanoidRootPart.Position
-                        )
+                    char.HumanoidRootPart.CFrame =
+                        mob.HumanoidRootPart.CFrame * CFrame.new(0,3,2)
                 end
 
             end)
@@ -108,27 +101,32 @@ spawn(function()
     end
 end)
 
--- Fast Attack
+-- FAST ATTACK (KHÔNG CLICK THẬT)
 spawn(function()
-    while task.wait(0.1) do
+    while task.wait(0.05) do
         if getgenv().KBT.Fast then
             pcall(function()
-                rs.Remotes.Combat:FireServer("Attack")
+                local CF = require(player.PlayerScripts.CombatFramework)
+                local AC = CF.activeController
+
+                if AC and AC.equipped then
+                    AC.hitboxMagnitude = 60
+                    AC.timeToNextAttack = 0
+                    AC:attack()
+                end
             end)
         end
     end
 end)
 
--- No Animation
+-- Auto Haki (fix)
 spawn(function()
-    while task.wait() do
-        if getgenv().KBT.Fast then
+    while task.wait(2) do
+        if getgenv().KBT.Farm then
             pcall(function()
-                local hum = player.Character:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    for _,v in pairs(hum:GetPlayingAnimationTracks()) do
-                        v:Stop()
-                    end
+                local char = player.Character
+                if char and not char:FindFirstChild("HasBuso") then
+                    rs.Remotes.CommF_:InvokeServer("Buso")
                 end
             end)
         end
@@ -139,50 +137,12 @@ end)
 spawn(function()
     while task.wait() do
         if getgenv().KBT.Fast then
-            pcall(function()
-                for _,v in pairs(workspace.Enemies:GetChildren()) do
-                    if v:FindFirstChild("HumanoidRootPart") then
-                        v.HumanoidRootPart.Size = Vector3.new(12,12,12)
-                        v.HumanoidRootPart.CanCollide = false
-                    end
+            for _,v in pairs(workspace.Enemies:GetChildren()) do
+                if v:FindFirstChild("HumanoidRootPart") then
+                    v.HumanoidRootPart.Size = Vector3.new(10,10,10)
+                    v.HumanoidRootPart.CanCollide = false
                 end
-            end)
-        end
-    end
-end)
-
--- Auto Skill
-spawn(function()
-    while task.wait() do
-        if getgenv().KBT.Skill then
-            local vim = game:GetService("VirtualInputManager")
-            for _,k in pairs({"Z","X","C","V"}) do
-                vim:SendKeyEvent(true,k,false,game)
-                task.wait(0.5)
             end
-        end
-    end
-end)
-
--- Auto Click
-spawn(function()
-    while task.wait() do
-        if getgenv().KBT.Click then
-            local vim = game:GetService("VirtualInputManager")
-            vim:SendMouseButtonEvent(0,0,0,true,game,0)
-            task.wait(0.1)
-            vim:SendMouseButtonEvent(0,0,0,false,game,0)
-        end
-    end
-end)
-
--- Auto Haki
-spawn(function()
-    while task.wait(1) do
-        if getgenv().KBT.Farm then
-            pcall(function()
-                rs.Remotes.CommF_:InvokeServer("Buso")
-            end)
         end
     end
 end)
