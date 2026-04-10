@@ -1,15 +1,12 @@
 repeat task.wait() until game:IsLoaded()
 
 local player = game.Players.LocalPlayer
-local VirtualUser = game:GetService("VirtualUser")
+local VIM = game:GetService("VirtualInputManager")
 
 getgenv().Farm = true
 getgenv().Height = 40
-getgenv().HitboxSize = 100 -- 🔥 MAX HITBOX
+getgenv().HitboxSize = 100
 
---------------------------------------------------
--- AUTO FARM PRO MAX
---------------------------------------------------
 spawn(function()
     while task.wait(0.1) do
         if getgenv().Farm then
@@ -21,8 +18,15 @@ spawn(function()
                 local humanoid = char:FindFirstChild("Humanoid")
                 if not hrp or not humanoid then return end
 
-                -- 🧍‍♂️ TREO TRÊN KHÔNG
+                -- TREO TRÊN KHÔNG
                 hrp.Anchored = true
+
+                -- AUTO HAKI
+                if not char:FindFirstChild("HasBuso") then
+                    VIM:SendKeyEvent(true, "J", false, game)
+                    task.wait(0.1)
+                    VIM:SendKeyEvent(false, "J", false, game)
+                end
 
                 -- AUTO EQUIP
                 if not char:FindFirstChildOfClass("Tool") then
@@ -34,7 +38,6 @@ spawn(function()
 
                 local centerMob = nil
 
-                -- 🔍 tìm 1 con làm trung tâm
                 for _, mob in pairs(workspace.Enemies:GetChildren()) do
                     if mob:FindFirstChild("Humanoid") and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
                         centerMob = mob
@@ -45,7 +48,7 @@ spawn(function()
                 if centerMob then
                     local centerPos = centerMob.HumanoidRootPart.Position
 
-                    -- 🚀 đứng trên đầu mob trung tâm
+                    -- ĐỨNG TRÊN ĐẦU
                     hrp.CFrame = CFrame.new(centerPos + Vector3.new(0, getgenv().Height, 0))
 
                     for _, mob in pairs(workspace.Enemies:GetChildren()) do
@@ -53,19 +56,20 @@ spawn(function()
                             
                             local mobHRP = mob.HumanoidRootPart
                             
-                            -- 🧲 GOM MOB VỀ 1 CHỖ
+                            -- GOM MOB
                             mobHRP.CFrame = CFrame.new(centerPos)
-                            
-                            -- 💥 HITBOX TO 100
+
+                            -- HITBOX 100
                             mobHRP.Size = Vector3.new(getgenv().HitboxSize, getgenv().HitboxSize, getgenv().HitboxSize)
                             mobHRP.CanCollide = false
-                            mobHRP.Transparency = 0.7
                         end
                     end
 
-                    -- 👊 AUTO ĐÁNH
-                    VirtualUser:CaptureController()
-                    VirtualUser:ClickButton1(Vector2.new(0,0))
+                    -- AUTO HIT
+                    local tool = char:FindFirstChildOfClass("Tool")
+                    if tool then
+                        tool:Activate()
+                    end
                 end
             end)
         else
