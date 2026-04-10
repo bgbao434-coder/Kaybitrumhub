@@ -1,4 +1,4 @@
--- KayBiTrum Hub VIP
+-- KayBiTrum Hub VIP (Blox Fruits Full Auto)
 
 repeat wait() until game:IsLoaded()
 
@@ -23,53 +23,22 @@ main.Position = UDim2.new(0.3,0,0.3,0)
 main.BackgroundColor3 = Color3.fromRGB(20,20,20)
 
 top.Size = UDim2.new(1,0,0,30)
-top.Text = "   KayBiTrum Hub"
+top.Text = "KayBiTrum Hub"
 top.TextColor3 = Color3.new(1,1,1)
 top.BackgroundColor3 = Color3.fromRGB(30,30,30)
 
--- 🖼️ ICON
-local icon = Instance.new("ImageLabel", top)
-icon.Size = UDim2.new(0,25,0,25)
-icon.Position = UDim2.new(0,2,0,2)
-icon.BackgroundTransparency = 1
-icon.Image = "rbxassetid://7733960981" -- bạn có thể đổi ID khác
-
--- ❌ Close button
-local close = Instance.new("TextButton", top)
-close.Size = UDim2.new(0,30,1,0)
-close.Position = UDim2.new(1,-30,0,0)
-close.Text = "X"
-close.BackgroundColor3 = Color3.fromRGB(150,0,0)
-close.TextColor3 = Color3.new(1,1,1)
-
-close.MouseButton1Click:Connect(function()
-    gui:Destroy()
-end)
-
--- 🔥 Drag (mobile + PC)
-local dragging = false
-local dragStart
-local startPos
-
+-- Drag
+local dragging, dragStart, startPos
 top.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch 
-    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
         dragStart = input.Position
         startPos = main.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
     end
 end)
 
 top.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch 
-    or input.UserInputType == Enum.UserInputType.MouseMovement then
-
+    if dragging then
         local delta = input.Position - dragStart
         main.Position = UDim2.new(
             startPos.X.Scale,
@@ -80,14 +49,20 @@ top.InputChanged:Connect(function(input)
     end
 end)
 
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
 -- Tabs
-local tabs = {"Farm","Combat","Misc"}
+local tabs = {"Farm","Combat"}
 local pages = {}
 
 for i,v in pairs(tabs) do
     local btn = Instance.new("TextButton", main)
-    btn.Size = UDim2.new(0.33,0,0,30)
-    btn.Position = UDim2.new((i-1)*0.33,0,0,30)
+    btn.Size = UDim2.new(0.5,0,0,30)
+    btn.Position = UDim2.new((i-1)*0.5,0,0,30)
     btn.Text = v
     btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
     btn.TextColor3 = Color3.new(1,1,1)
@@ -122,46 +97,74 @@ function Toggle(parent, text, posY, key)
     end)
 end
 
--- Toggles
 Toggle(pages["Farm"],"Auto Farm",0,"Farm")
 Toggle(pages["Farm"],"Auto Quest",40,"Quest")
-Toggle(pages["Combat"],"Auto Skill",0,"Skill")
-Toggle(pages["Combat"],"Fast Attack",40,"Fast")
+Toggle(pages["Combat"],"Fast Attack",0,"Fast")
+Toggle(pages["Combat"],"Auto Skill",40,"Skill")
 Toggle(pages["Combat"],"Auto Click",80,"Click")
 
--- Anti AFK
-spawn(function()
-    local vu = game:GetService("VirtualUser")
-    player.Idled:Connect(function()
-        vu:CaptureController()
-        vu:ClickButton2(Vector2.new())
-    end)
-end)
+-- QUEST DATA
+local QuestList = {
+    {Level = 1, Name = "Bandit", QuestName = "BanditQuest1", QuestLv = 1},
+    {Level = 10, Name = "Monkey", QuestName = "JungleQuest", QuestLv = 1},
+    {Level = 15, Name = "Gorilla", QuestName = "JungleQuest", QuestLv = 2},
+    {Level = 30, Name = "Pirate", QuestName = "BuggyQuest1", QuestLv = 1},
+    {Level = 40, Name = "Brute", QuestName = "BuggyQuest1", QuestLv = 2},
+}
 
--- Random delay
-function rd(a,b)
-    return math.random(a,b)/10
+function GetQuest()
+    local level = player.Data.Level.Value
+    for i = #QuestList,1,-1 do
+        if level >= QuestList[i].Level then
+            return QuestList[i]
+        end
+    end
 end
 
--- Get Mob
 function GetMob()
+    local quest = GetQuest()
+    if not quest then return end
+
     for _,v in pairs(game.Workspace.Enemies:GetChildren()) do
-        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+        if v:FindFirstChild("Humanoid") 
+        and v.Humanoid.Health > 0 
+        and string.find(v.Name, quest.Name) then
             return v
         end
     end
 end
 
--- Auto Farm
+-- Auto Quest
+spawn(function()
+    while wait(1) do
+        if getgenv().KBT.Quest then
+            pcall(function()
+                local quest = GetQuest()
+                if quest then
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(
+                        "StartQuest",
+                        quest.QuestName,
+                        quest.QuestLv
+                    )
+                end
+            end)
+        end
+    end
+end)
+
+-- Auto Farm (bay trên đầu)
 spawn(function()
     while wait() do
         if getgenv().KBT.Farm then
             pcall(function()
                 local mob = GetMob()
-                if mob then
-                    repeat wait(rd(1,3))
+                if mob and mob:FindFirstChild("HumanoidRootPart") then
+                    repeat task.wait()
                         player.Character.HumanoidRootPart.CFrame =
-                            mob.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+                            CFrame.new(
+                                mob.HumanoidRootPart.Position + Vector3.new(0,10,0),
+                                mob.HumanoidRootPart.Position
+                            )
                     until not mob or mob.Humanoid.Health <= 0
                 end
             end)
@@ -169,15 +172,14 @@ spawn(function()
     end
 end)
 
--- Auto Skill
+-- Anti Fall
 spawn(function()
     while wait() do
-        if getgenv().KBT.Skill then
+        if getgenv().KBT.Farm then
             pcall(function()
-                local vim = game:GetService("VirtualInputManager")
-                for _,k in pairs({"Z","X","C","V"}) do
-                    vim:SendKeyEvent(true,k,false,game)
-                    wait(rd(2,5))
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.Velocity = Vector3.new(0,0,0)
                 end
             end)
         end
@@ -186,11 +188,26 @@ end)
 
 -- Fast Attack
 spawn(function()
+    while wait(0.1) do
+        if getgenv().KBT.Fast then
+            pcall(function()
+                game:GetService("ReplicatedStorage").Remotes.Combat:FireServer("Attack")
+            end)
+        end
+    end
+end)
+
+-- No Animation
+spawn(function()
     while wait() do
         if getgenv().KBT.Fast then
             pcall(function()
-                game:GetService("ReplicatedStorage").Remotes.Combat:FireServer()
-                wait(0.25)
+                local hum = player.Character:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    for _,track in pairs(hum:GetPlayingAnimationTracks()) do
+                        track:Stop()
+                    end
+                end
             end)
         end
     end
@@ -210,24 +227,26 @@ spawn(function()
     end
 end)
 
--- Auto Quest
+-- Auto Skill
 spawn(function()
-    while wait(2) do
-        if getgenv().KBT.Quest then
+    while wait() do
+        if getgenv().KBT.Skill then
             pcall(function()
-                local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-                if remote and remote:FindFirstChild("Quest") then
-                    remote.Quest:FireServer("Start")
+                local vim = game:GetService("VirtualInputManager")
+                for _,k in pairs({"Z","X","C","V"}) do
+                    vim:SendKeyEvent(true,k,false,game)
+                    wait(0.5)
                 end
             end)
         end
     end
 end)
 
--- Notify
-game.StarterGui:SetCore("SendNotification",{
-    Title = "KayBiTrum Hub",
-    Text = "VIP Loaded 🚀",
-    Duration = 5
-
-})
+-- Anti AFK
+spawn(function()
+    local vu = game:GetService("VirtualUser")
+    player.Idled:Connect(function()
+        vu:CaptureController()
+        vu:ClickButton2(Vector2.new())
+    end)
+end)
